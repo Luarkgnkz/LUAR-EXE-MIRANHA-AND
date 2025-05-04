@@ -1,138 +1,171 @@
--- Sistema de Segurança (Anti-Kick, Anti-Exploit, Anti-Blacklist)
-local mt = getrawmetatable(game)
-setreadonly(mt, false)
-local namecall = mt.__namecall
-mt.__namecall = newcclosure(function(self, ...)
-    local args = {...}
-    if getnamecallmethod() == "Kick" or tostring(self) == "Kick" then
-        return
-    end
-    return namecall(self, unpack(args))
+-- Sistema de Segurança Avançado
+pcall(function()
+    local mt = getrawmetatable(game)
+    setreadonly(mt, false)
+    local old = mt.__namecall
+    mt.__namecall = newcclosure(function(self, ...)
+        local args = {...}
+        local method = getnamecallmethod()
+        if method == "Kick" or method == "kick" then
+            return warn("Tentativa de Kick Bloqueada.")
+        end
+        return old(self, unpack(args))
+    end)
 end)
 
--- Proteção extra
-game:GetService("Players").LocalPlayer.PlayerScripts.ChildAdded:Connect(function(child)
-    if child.Name:lower():find("anti") or child:IsA("LocalScript") and child:FindFirstChildWhichIsA("RemoteEvent") then
-        child:Destroy()
+-- Anti-Blacklist & Anti-Exploit Bypass
+pcall(function()
+    for _, v in pairs(game.Players.LocalPlayer:GetDescendants()) do
+        if v:IsA("StringValue") and string.find(v.Name:lower(), "ban") then
+            v:Destroy()
+        end
     end
 end)
 
--- Rayfield UI
+-- Carregar Rayfield
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
+-- Criar Janela Principal
 local Window = Rayfield:CreateWindow({
     Name = "Luar.Exe V2",
     LoadingTitle = "Assombra Chorão👻",
     LoadingSubtitle = "By. Luar.Exe and Miranha.Exe",
     ConfigurationSaving = {
         Enabled = true,
-        FolderName = "Luar.ExeV2",
-        FileName = "Painel"
+        FolderName = "LuarExe",
+        FileName = "config",
     },
     KeySystem = false,
 })
 
--- Info
+-- Aba Info
 local Info = Window:CreateTab("Info", 4483362458)
 Info:CreateParagraph({
-    Title = "Chorou pro Luar.Exe",
-    Content = "By Luar.Exe and Miranha.Exe"
+    Title = "Chorou Pro Luar.Exe e Pro Miranha",
+    Content = "Será???"
 })
 
--- PVP
+-- Aba PVP
 local PVP = Window:CreateTab("PVP", 4483362458)
-
--- Anti-queda
-PVP:CreateToggle({
-    Name = "Anti-Queda",
-    CurrentValue = false,
-    Callback = function(on)
-        if on then
-            game.Players.LocalPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-            game.Players.LocalPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
-        else
-            game.Players.LocalPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
-            game.Players.LocalPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
-        end
-    end,
-})
 
 -- Speed
 PVP:CreateToggle({
     Name = "Speed",
     CurrentValue = false,
-    Callback = function(state)
-        local h = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if h then h.WalkSpeed = state and 50 or 16 end
-    end,
+    Callback = function(val)
+        local hum = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.WalkSpeed = val and 50 or 16
+        end
+    end
 })
 
 -- No-Clip
-local noclipCon
+local NoClipConnection
 PVP:CreateToggle({
     Name = "No-Clip",
     CurrentValue = false,
     Callback = function(state)
         if state then
-            noclipCon = game:GetService("RunService").Stepped:Connect(function()
-                local char = game.Players.LocalPlayer.Character
-                if char then
-                    for _, part in pairs(char:GetDescendants()) do
-                        if part:IsA("BasePart") then part.CanCollide = false end
+            NoClipConnection = game:GetService("RunService").Stepped:Connect(function()
+                for _, part in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
                     end
                 end
             end)
-        elseif noclipCon then
-            noclipCon:Disconnect()
+        else
+            if NoClipConnection then NoClipConnection:Disconnect() end
         end
-    end,
-})
-
--- Tratar (cura básica)
-PVP:CreateButton({
-    Name = "Tratar (Vida Cheia)",
-    Callback = function()
-        local h = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if h then h.Health = h.MaxHealth end
     end
 })
 
--- Visual
+-- Anti-Queda
+PVP:CreateToggle({
+    Name = "Anti-Dano de Queda",
+    CurrentValue = false,
+    Callback = function(state)
+        game:GetService("RunService").Heartbeat:Connect(function()
+            if state then
+                local char = game.Players.LocalPlayer.Character
+                if char then
+                    local hum = char:FindFirstChildWhichIsA("Humanoid")
+                    if hum then hum:SetStateEnabled(Enum.HumanoidStateType.Freefall, false) end
+                end
+            end
+        end)
+    end
+})
+
+-- Tratar (Regeneração)
+PVP:CreateButton({
+    Name = "Tratar",
+    Callback = function()
+        local char = game.Players.LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then hum.Health = hum.MaxHealth end
+        end
+    end
+})
+
+-- Aba Visual
 local Visual = Window:CreateTab("Visual", 4483362458)
 
--- ESP
-local function addESP(player)
-    if player.Character and not player.Character:FindFirstChild("Highlight") then
-        local highlight = Instance.new("Highlight")
-        highlight.FillColor = Color3.new(1, 1, 0)
-        highlight.FillTransparency = 0.3
-        highlight.OutlineColor = Color3.new(1, 1, 1)
-        highlight.OutlineTransparency = 0.8
-        highlight.Adornee = player.Character
-        highlight.Parent = player.Character
-    end
-end
+-- ESP Funcional Pós-Morte
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 Visual:CreateToggle({
     Name = "ESP",
     CurrentValue = false,
     Callback = function(state)
-        for _, p in pairs(game.Players:GetPlayers()) do
-            if p ~= game.Players.LocalPlayer then
-                if state then
-                    p.CharacterAdded:Connect(function()
-                        wait(1)
-                        addESP(p)
-                    end)
-                    if p.Character then
-                        addESP(p)
-                    end
-                else
-                    if p.Character and p.Character:FindFirstChild("Highlight") then
-                        p.Character.Highlight:Destroy()
-                    end
+        if state then
+            local function createESP(player)
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "HighlightESP"
+                highlight.FillColor = Color3.new(1, 1, 0)
+                highlight.OutlineColor = Color3.new(1, 1, 1)
+                highlight.FillTransparency = 0.3
+                highlight.OutlineTransparency = 0
+                highlight.Adornee = player.Character
+                highlight.Parent = player.Character
+            end
+
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= Players.LocalPlayer and player.Character then
+                    createESP(player)
+                end
+                player.CharacterAdded:Connect(function()
+                    task.wait(1)
+                    createESP(player)
+                end)
+            end
+        else
+            for _, player in pairs(Players:GetPlayers()) do
+                if player.Character and player.Character:FindFirstChild("HighlightESP") then
+                    player.Character.HighlightESP:Destroy()
                 end
             end
+        end
+    end
+})
+
+-- Mandar Revistar (loop 100x)
+local revistarAtivo = false
+Visual:CreateToggle({
+    Name = "Mandar Revistar (Spam 100x)",
+    CurrentValue = false,
+    Callback = function(estado)
+        revistarAtivo = estado
+        if revistarAtivo then
+            task.spawn(function()
+                for i = 1, 100 do
+                    if not revistarAtivo then break end
+                    game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer("/revistar morto", "All")
+                    wait(0.1)
+                end
+            end)
         end
     end
 })
@@ -150,94 +183,74 @@ Visual:CreateButton({
     Name = "God Mode",
     Callback = function()
         local char = game.Players.LocalPlayer.Character
-        if char then
-            for _, v in pairs(char:GetDescendants()) do
-                if v:IsA("BasePart") then
-                    v.Anchored = true
-                end
-            end
-        end
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.Name = "God" hum.MaxHealth = math.huge hum.Health = math.huge end
     end
 })
 
--- Anti-Staff
+-- Anti-Staff (Remove scripts suspeitos)
 Visual:CreateButton({
     Name = "Anti-Staff",
     Callback = function()
-        while wait(2) do
-            for _, p in pairs(game.Players:GetPlayers()) do
-                if p:GetRoleInGroup(1) == "Staff" then
-                    game.Players.LocalPlayer:Kick("Staff Detectado")
-                end
+        for _, v in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do
+            if v:IsA("Script") or v:IsA("LocalScript") then
+                v:Destroy()
             end
         end
     end
 })
 
--- Revistar (mensagem loop)
-local revistar = false
-Visual:CreateToggle({
-    Name = "Revistar (loop)",
-    CurrentValue = false,
-    Callback = function(v)
-        revistar = v
-        while revistar do
-            game.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("/revistar morto", "All")
-            wait(5)
+-- Aba Players
+local PlayersTab = Window:CreateTab("Players", 4483362458)
+
+PlayersTab:CreateButton({
+    Name = "Bring All",
+    Callback = function()
+        for _, plr in pairs(game.Players:GetPlayers()) do
+            if plr.Character then
+                plr.Character:MoveTo(game.Players.LocalPlayer.Character.HumanoidRootPart.Position + Vector3.new(3, 0, 3))
+            end
         end
     end
 })
 
--- Aimbot
+-- Aba Trolls
+local Trolls = Window:CreateTab("Trolls", 4483362458)
+
+Trolls:CreateToggle({
+    Name = "Fake Lag",
+    CurrentValue = false,
+    Callback = function(on)
+        if on then
+            game:GetService("RunService"):Set3dRenderingEnabled(false)
+        else
+            game:GetService("RunService"):Set3dRenderingEnabled(true)
+        end
+    end
+})
+
+-- Aba Aimbot
 local Aimbot = Window:CreateTab("Aimbot", 4483362458)
 Aimbot:CreateButton({
     Name = "Ativar Aimbot",
     Callback = function()
         loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Aimbot-fov-mobile-7607"))()
-    end,
+    end
 })
 
--- Players
-local Players = Window:CreateTab("Players", 4483362458)
-Players:CreateButton({
-    Name = "Bring All",
+-- Aba Farms
+local Farms = Window:CreateTab("Farms", 4483362458)
+
+Farms:CreateButton({
+    Name = "Auto-Farm: Lixos da Cidade",
     Callback = function()
-        local pos = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
-        for _, p in pairs(game.Players:GetPlayers()) do
-            if p.Character then
-                p.Character:SetPrimaryPartCFrame(CFrame.new(pos + Vector3.new(math.random(-5,5),0,math.random(-5,5))))
+        while true do
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v.Name:lower():find("lixo") then
+                    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = v.CFrame
+                    wait(0.5)
+                end
             end
         end
-    end
-})
-
--- Trolls
-local Trolls = Window:CreateTab("Trolls", 4483362458)
-local fakeLag = false
-Trolls:CreateToggle({
-    Name = "Fake Lag",
-    CurrentValue = false,
-    Callback = function(state)
-        fakeLag = state
-        while fakeLag do
-            wait(0.1)
-            game:GetService("RunService").RenderStepped:Wait()
-        end
-    end
-})
-
--- Farms
-local Farms = Window:CreateTab("Farms", 4483362458)
-Farms:CreateButton({
-    Name = "Farm Lixos da Cidade",
-    Callback = function()
-        -- Código do Auto-Farm pode ser adicionado aqui
-    end
-})
-
-Farms:CreateButton({
-    Name = "Farm Planta Suja",
-    Callback = function()
-        -- Código do Auto-Farm pode ser adicionado aqui
     end
 })
